@@ -1,3 +1,5 @@
+/// <reference lib="dom" />
+
 export interface KeystrokeManagerOptions {
 	allowNewlines?: boolean
 	allowTabs?: boolean

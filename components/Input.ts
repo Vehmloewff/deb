@@ -1,5 +1,6 @@
 import { CoreElement, ensureObservable, isObservable, MaybeObservable, Observable, observable, twoWayBinding } from '../core/mod.ts'
 import { keystrokeManager } from '../lib/keystroke-manager.ts'
+import { relativeMouseEvent } from '../lib/relative-mouseevent.ts'
 import { Block, Label } from '../mod.ts'
 import { BlockStyles } from '../types.ts'
 import { Caret, CaretStyles } from './Caret.ts'
@@ -241,6 +242,36 @@ export function Input<T = string>(value: MaybeObservable<T[]>, options: InputOpt
 		powerMoveCaretLeft() {
 			const count = getCountToEndOfWord('left')
 			actions.moveCaret(caretPosition - count)
+		},
+	})
+
+	container.on({
+		click: e => {
+			const { x, y } = relativeMouseEvent(e, container.raw)
+
+			let index = mappings.length
+			let cancel = false
+			for (let i in mappings) {
+				const currentIndex = Number(i)
+				const map = mappings[i]
+
+				if (map.hidden) continue
+
+				const position = map.position()
+
+				if (position.bottomRight.y < y) {
+					index = currentIndex - 1
+					break
+				}
+
+				const characterWidth = position.topRight.x - position.topLeft.x
+				if (position.topRight.x - characterWidth / 2 > x) {
+					index = currentIndex
+					break
+				}
+			}
+
+			if (!cancel) actions.moveCaret(index)
 		},
 	})
 

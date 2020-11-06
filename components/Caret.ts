@@ -22,9 +22,14 @@ export function Caret() {
 	})
 
 	let interval: any
+	let blinking = false
 
 	function startBlinking() {
 		let on = true
+
+		if (blinking) return
+
+		blinking = true
 		interval = setInterval(() => {
 			if (on) {
 				container.style({ opacity: 0 })
@@ -37,6 +42,7 @@ export function Caret() {
 	}
 
 	function stopBlinking() {
+		blinking = false
 		clearInterval(interval)
 		container.style({ opacity: 1 })
 	}
