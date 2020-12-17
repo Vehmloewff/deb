@@ -1,16 +1,24 @@
-import { Element, isObservable } from '../core/mod.ts'
+import { Element } from '../core/mod.ts'
 import { LabelStyles, ensureObservable, groupSubscribe, MaybeObservable, sureGet } from '../mod.ts'
 import { makeArray } from '../lib/utils.ts'
 import { stringifyColor } from '../lib/stringify-color.ts'
 
-export function Label(text: MaybeObservable<string>) {
+export interface LabelOptions {
+	/**
+	 * If `true`, the text will be rendered as html
+	 * @default false
+	 */
+	renderHtml?: MaybeObservable<boolean>
+}
+
+export function Label(text: MaybeObservable<string>, options: LabelOptions = {}) {
 	const core = Element('div')
 	const element = core.raw
 	const styler = element.style
 
 	element.classList.add('text')
 
-	ensureObservable(text).subscribe(text => (element.textContent = text))
+	ensureObservable(text).subscribe(text => (options.renderHtml ? (element.innerHTML = text) : (element.textContent = text)))
 
 	const testGo = <T>(
 		value: MaybeObservable<T> | undefined,

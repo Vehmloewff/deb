@@ -36,10 +36,10 @@ body {
 	left: 0;
 	bottom: 0;
 	outline: none;
+	overflow: hidden;
 }
 
 .text {
-	align-self: center;
 	text-align: center;
 	white-space: pre-wrap;
 	background: black;

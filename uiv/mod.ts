@@ -36,9 +36,10 @@ export function makeUiVisualizer(name: string, ...components: UivComponent[]) {
 							border: { color: 'black', width: 1, style: 'solid' },
 							borderRadius: 4,
 							focused: { border: { color: 'blue', width: 1, style: 'solid' } },
-							height: 20,
+							height: 80,
+							wrapChildren: true,
 						})
-						.$(Input(inputWholeString(`hello there`)).style({ caret: { color: 'blue' } }))
+						.$(Input(inputWholeString(`hello there`), { multiline: true }).style({ caret: { color: 'blue' } }))
 				),
 			// main
 			Block().style({ background: 'paleBlue' })

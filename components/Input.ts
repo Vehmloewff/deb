@@ -99,7 +99,7 @@ const defaultHandlers = (): InputHandlers<any> => ({
 			const map: DataMap<string> = {
 				data: char,
 				hidden: false,
-				representative: Label(char),
+				representative: char === '\n' ? Label(`<div style='width: 50px'></div>`, { renderHtml: true }) : Label(char),
 				position() {
 					const el = this.representative.raw
 					if (!el.parentElement) throw new Error(`Can't get element's position before it is mounted`)
@@ -133,10 +133,12 @@ export interface InputOptions {
 	}
 	/** @default 18 */
 	defaultCaretHeight?: number
+	/** @default false */
+	multiline?: boolean
 }
 
 export function Input<T = string>(value: MaybeObservable<T[]>, options: InputOptions = {}, handlers: InputHandlers<T> = defaultHandlers()) {
-	const container = Block().style({ alignX: 'start', cursor: 'text' })
+	const container = Block().style({ alignX: 'start', alignY: 'top', cursor: 'text' })
 	const caret = (options.caret || Caret)()
 	const inputValue = ensureObservable(value)
 
@@ -205,45 +207,49 @@ export function Input<T = string>(value: MaybeObservable<T[]>, options: InputOpt
 
 	if (inputValue.get().length) addData(inputValue.get(), 0)
 
-	keystrokeManager(container.raw, {
-		add(chars: string[]) {
-			const data = chars.map(char => handlers.addition(char))
-			actions.addition(data, caretPosition)
+	keystrokeManager(
+		container.raw,
+		{
+			add(chars: string[]) {
+				const data = chars.map(char => handlers.addition(char))
+				actions.addition(data, caretPosition)
+			},
+			remove() {
+				if (!caretPosition) return
+				actions.deletion(caretPosition - 1, 1)
+			},
+			powerRemove() {
+				if (!caretPosition) return
+				const count = getCountToEndOfWord('left')
+				actions.deletion(caretPosition - count, count)
+			},
+			moveCaretDown() {
+				const currentYPosition = getYPosition(caretPosition)
+				const index = getIndexOfDataAtYPosition(currentYPosition, caretPosition, 'right')
+				actions.moveCaret(index)
+			},
+			moveCaretUp() {
+				const currentYPosition = getYPosition(caretPosition)
+				const index = getIndexOfDataAtYPosition(currentYPosition, caretPosition, 'left')
+				actions.moveCaret(index)
+			},
+			moveCaretRight() {
+				actions.moveCaret(caretPosition + 1)
+			},
+			powerMoveCaretRight() {
+				const count = getCountToEndOfWord('right')
+				actions.moveCaret(caretPosition + count)
+			},
+			moveCaretLeft() {
+				actions.moveCaret(caretPosition - 1)
+			},
+			powerMoveCaretLeft() {
+				const count = getCountToEndOfWord('left')
+				actions.moveCaret(caretPosition - count)
+			},
 		},
-		remove() {
-			if (!caretPosition) return
-			actions.deletion(caretPosition - 1, 1)
-		},
-		powerRemove() {
-			if (!caretPosition) return
-			const count = getCountToEndOfWord('left')
-			actions.deletion(caretPosition - count, count)
-		},
-		moveCaretDown() {
-			const currentYPosition = getYPosition(caretPosition)
-			const index = getIndexOfDataAtYPosition(currentYPosition, caretPosition, 'right')
-			actions.moveCaret(index)
-		},
-		moveCaretUp() {
-			const currentYPosition = getYPosition(caretPosition)
-			const index = getIndexOfDataAtYPosition(currentYPosition, caretPosition, 'left')
-			actions.moveCaret(index)
-		},
-		moveCaretRight() {
-			actions.moveCaret(caretPosition + 1)
-		},
-		powerMoveCaretRight() {
-			const count = getCountToEndOfWord('right')
-			actions.moveCaret(caretPosition + count)
-		},
-		moveCaretLeft() {
-			actions.moveCaret(caretPosition - 1)
-		},
-		powerMoveCaretLeft() {
-			const count = getCountToEndOfWord('left')
-			actions.moveCaret(caretPosition - count)
-		},
-	})
+		{ allowNewlines: options.multiline, allowTabs: options.multiline }
+	)
 
 	container.on({
 		click: e => {

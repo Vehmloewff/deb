@@ -313,27 +313,6 @@ export function Block() {
 		// alignSelfY
 		testGo(styles.alignSelfY, val => (styler.alignSelf = parseStringPosition(val)))
 
-		// alignY
-		testGo(styles.alignY, val =>
-			styler.flexDirection === 'row' || styler.flexDirection === 'row-reverse'
-				? (styler.alignItems = parseStringPosition(val))
-				: (styler.justifyContent = parseStringPosition(val))
-		)
-
-		// alignX
-		testGo(styles.alignX, val =>
-			styler.flexDirection === 'column' || styler.flexDirection === 'column-reverse'
-				? (styler.alignItems = parseStringPosition(val))
-				: (styler.justifyContent = parseStringPosition(val))
-		)
-
-		// wrapChildren and wrapReverse
-		testGo(
-			styles.wrapChildren,
-			wrap => (styler.flexWrap = !wrap ? 'nowrap' : sureGet(styles.wrapReverse) ? 'wrap-reverse' : 'wrap'),
-			styles.wrapReverse
-		)
-
 		// stackY and stackReverse
 		testGo(
 			styles.stackY,
@@ -354,6 +333,27 @@ export function Block() {
 		).otherwise(() => {
 			if (!styler.flexDirection) styler.flexDirection = sureGet(styles.stackReverse) ? 'row-reverse' : 'row'
 		})
+
+		// alignY
+		testGo(styles.alignY, val =>
+			!styler.flexDirection || styler.flexDirection === 'row' || styler.flexDirection === 'row-reverse'
+				? (styler.alignItems = parseStringPosition(val))
+				: (styler.justifyContent = parseStringPosition(val))
+		)
+
+		// alignX
+		testGo(styles.alignX, val =>
+			styler.flexDirection === 'column' || styler.flexDirection === 'column-reverse'
+				? (styler.alignItems = parseStringPosition(val))
+				: (styler.justifyContent = parseStringPosition(val))
+		)
+
+		// wrapChildren and wrapReverse
+		testGo(
+			styles.wrapChildren,
+			wrap => (styler.flexWrap = !wrap ? 'nowrap' : sureGet(styles.wrapReverse) ? 'wrap-reverse' : 'wrap'),
+			styles.wrapReverse
+		)
 
 		// transition
 		testGo(styles.transition, transitions => {
