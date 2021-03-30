@@ -1,20 +1,22 @@
-export type MaybeObservable<T> = Observable<T> | T
+// deno-lint-ignore-file no-explicit-any
 
-export interface Observable<T> {
+export type MaybeStorable<T> = Storable<T> | T
+
+export interface Storable<T> {
 	get(): T
 	set(v: T): void
 	subscribe(listener: Subscriber<T>): () => void
 }
 
-export interface ReadOnlyObservable<T> {
+export interface ReadOnlyStorable<T> {
 	get(): T
 	subscribe(listener: Subscriber<T>): () => void
 }
 
 export type Subscriber<T> = (newVal: T, initialCall: boolean) => void
 
-export function observable<T>(value: T): Observable<T> {
-	let subscribers: Subscriber<T>[] = []
+export function storable<T>(value: T): Storable<T> {
+	const subscribers: Subscriber<T>[] = []
 
 	function get(): T {
 		return value
@@ -46,33 +48,28 @@ export function observable<T>(value: T): Observable<T> {
 	}
 }
 
-export function isObservable<T>(value: MaybeObservable<T>): typeof value extends Observable<T> ? true : false
-export function isObservable(value: MaybeObservable<any>): boolean {
+export function isStorable<T>(value: MaybeStorable<T>): typeof value extends Storable<T> ? true : false
+export function isStorable(value: MaybeStorable<any>): boolean {
 	if (!value) return false
 	if ((value as any).subscribe) return true
 	return false
 }
 
-export function ensureObservable<T>(maybeStateful: MaybeObservable<T>): Observable<T> {
-	if (isObservable(maybeStateful)) return maybeStateful as Observable<T>
-	else return observable(maybeStateful) as Observable<T>
+export function ensureStorable<T>(maybeStateful: MaybeStorable<T>): Storable<T> {
+	if (isStorable(maybeStateful)) return maybeStateful as Storable<T>
+	else return storable(maybeStateful) as Storable<T>
 }
 
-export function derive<OS, NS>(previousState: MaybeObservable<OS>, mapper: (oldValue: OS) => NS): Observable<NS> {
+export function derive<OS, NS>(previousState: MaybeStorable<OS>, mapper: (oldValue: OS) => NS): Storable<NS> {
 	return deriveMany([previousState], ([previousStateValue]) => mapper(previousStateValue))
 }
 
-type _ObservableValues<T> = T extends ReadOnlyObservable<infer U>
-	? U
-	: { [K in keyof T]: T[K] extends ReadOnlyObservable<infer U> ? U : never }
+// type _StorableValues<T> = T extends Storable<infer U> ? U : { [K in keyof T]: T[K] extends Storable<infer U> ? U : never }
 
-export function deriveMany<SA extends MaybeObservable<any>[], T>(
-	previousStates: SA,
-	mapper: (oldValue: _ObservableValues<SA>) => T
-): Observable<T> {
+export function deriveMany<T>(previousStates: MaybeStorable<any>[], mapper: (oldValue: any[]) => T): Storable<T> {
 	const newValue = () => mapper(previousStates.map(state => state.get()) as any)
 
-	const newState: Observable<T> = observable(newValue())
+	const newState: Storable<T> = storable(newValue())
 
 	groupSubscribe(index => {
 		if (index !== null) newState.set(newValue())
@@ -83,17 +80,17 @@ export function deriveMany<SA extends MaybeObservable<any>[], T>(
 
 /**
  *
- * @param fn Calls this function every time the values of `maybeObservables` are updated.
- * The first param passed into this function is the index of the observable that changed
- * in `maybeObservables`.  `changed` will be `null` if it is the initial call.
+ * @param fn Calls this function every time the values of `maybeStorables` are updated.
+ * The first param passed into this function is the index of the storable that changed
+ * in `maybeStorables`.  `changed` will be `null` if it is the initial call.
  *
- * @param maybeObservables The observables to watch.
+ * @param maybeStorables The storables to watch.
  */
-export function groupSubscribe(fn: (changed: number | null) => void, ...maybeObservables: MaybeObservable<any>[]) {
-	maybeObservables.forEach((maybeStateful, index) => {
-		if (!isObservable(maybeStateful)) return
+export function groupSubscribe(fn: (changed: number | null) => void, ...maybeStorables: MaybeStorable<any>[]) {
+	maybeStorables.forEach((maybeStateful, index) => {
+		if (!isStorable(maybeStateful)) return
 
-		const state = maybeStateful as Observable<any>
+		const state = maybeStateful as Storable<any>
 		state.subscribe((_, initial) => {
 			if (initial) return
 			fn(index)
@@ -112,11 +109,11 @@ export interface TwoWayBindingOptions<O1, O2> {
 	ignoreO2Value?(o2Value: O2): boolean
 	/** O1 has just emitted a new value, but if this function returns `true`, the emit will be ignored */
 	ignoreO1Value?(o1Value: O1): boolean
-	/** On the initial subscription, the first observable will generally set the second, but if this is `true`, the second one will set the first. */
+	/** On the initial subscription, the first storable will generally set the second, but if this is `true`, the second one will set the first. */
 	reverseInitialSetFlow?: boolean
 }
 
-export function twoWayBinding<O1, O2>(o1: Observable<O1>, o2: Observable<O2>, options: TwoWayBindingOptions<O1, O2>) {
+export function twoWayBinding<O1, O2>(o1: Storable<O1>, o2: Storable<O2>, options: TwoWayBindingOptions<O1, O2>) {
 	if (!options.reverseInitialSetFlow) o2.set(options.map1to2(o1.get()))
 	else o1.set(options.map2to1(o2.get()))
 
@@ -141,12 +138,12 @@ export function twoWayBinding<O1, O2>(o1: Observable<O1>, o2: Observable<O2>, op
 	})
 }
 
-export function sureGet<T>(value: Observable<T> | T): T {
-	if (isObservable(value)) return (value as Observable<T>).get()
+export function sureGet<T>(value: Storable<T> | T): T {
+	if (isStorable(value)) return (value as Storable<T>).get()
 	return value as T
 }
 
-export function readableOnly<T>(stateful: ReadOnlyObservable<T> | Observable<T>): ReadOnlyObservable<T> {
+export function readableOnly<T>(stateful: ReadOnlyStorable<T> | Storable<T>): ReadOnlyStorable<T> {
 	return {
 		get: stateful.get,
 		subscribe: stateful.subscribe,
