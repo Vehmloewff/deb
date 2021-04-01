@@ -10,7 +10,7 @@ import {
 	makeInlineCode,
 	makeCodeBlock,
 	getTheme,
-	derive,
+	colorModifiers,
 	makeImage,
 } from '../mod.ts'
 import { parseMarkdown, Node } from './lib/parse-markdown.ts'
@@ -32,8 +32,6 @@ export function renderMarkdown(markdown: MaybeStorable<string>) {
 
 function render(markdown: string): (BareElement | string)[] {
 	const nodes = parseMarkdown(sureGet(markdown))
-
-	console.log(nodes)
 
 	function renderNode(previousNode: Node | null, node: Node, nextNode: Node | null): BareElement | string | null {
 		if (node.type === 'title') return makeHeader(node.rank).$(...renderNodes(node.block))
@@ -71,9 +69,9 @@ function render(markdown: string): (BareElement | string)[] {
 			return makeDivision()
 				.style({
 					padding: `20px`,
-					borderLeft: derive(getTheme().action1, x => `5px solid ${x}`),
-					background: getTheme().action1Light,
-					borderRadius: derive(getTheme().mediumAverageBorder, x => `0px ${x} ${x} 0px`),
+					borderLeft: `5px solid ${getTheme().action1}`,
+					background: colorModifiers.setAlpha(getTheme().action1, 0.1),
+					borderRadius: `0px ${getTheme().mediumAverageBorder} ${getTheme().mediumAverageBorder} 0px`,
 				})
 				.$(...renderNodes(node.block))
 		if (node.type === 'image') return makeImage(node.url, { alt: node.alt })

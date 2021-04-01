@@ -35,7 +35,7 @@ export function storable<T>(value: T): Storable<T> {
 
 		return () => {
 			const index = subscribers.indexOf(listener)
-			if (index === -1) throw new Error(`Whoops, somehow lost track of the listener!`)
+			if (index === -1) return // already unsubscribed
 
 			subscribers.splice(index, 1)
 		}
@@ -67,12 +67,16 @@ export function derive<OS, NS>(previousState: MaybeStorable<OS>, mapper: (oldVal
 // type _StorableValues<T> = T extends Storable<infer U> ? U : { [K in keyof T]: T[K] extends Storable<infer U> ? U : never }
 
 export function deriveMany<T>(previousStates: MaybeStorable<any>[], mapper: (oldValue: any[]) => T): Storable<T> {
-	const newValue = () => mapper(previousStates.map(state => state.get()) as any)
+	const newValue = () => mapper(previousStates.map(sureGet) as any)
 
 	const newState: Storable<T> = storable(newValue())
 
 	groupSubscribe(index => {
-		if (index !== null) newState.set(newValue())
+		if (index !== null) {
+			const nextValue = newValue()
+			const lastValue = newState.get()
+			if (nextValue !== lastValue) newState.set(newValue())
+		}
 	}, ...previousStates)
 
 	return newState
@@ -87,17 +91,25 @@ export function deriveMany<T>(previousStates: MaybeStorable<any>[], mapper: (old
  * @param maybeStorables The storables to watch.
  */
 export function groupSubscribe(fn: (changed: number | null) => void, ...maybeStorables: MaybeStorable<any>[]) {
+	const unsubscribes: (() => void)[] = []
+
 	maybeStorables.forEach((maybeStateful, index) => {
 		if (!isStorable(maybeStateful)) return
 
 		const state = maybeStateful as Storable<any>
-		state.subscribe((_, initial) => {
-			if (initial) return
-			fn(index)
-		})
+		unsubscribes.push(
+			state.subscribe((_, initial) => {
+				if (initial) return
+				fn(index)
+			})
+		)
 	})
 
 	fn(null)
+
+	return () => {
+		unsubscribes.forEach(fn => fn())
+	}
 }
 
 export interface TwoWayBindingOptions<O1, O2> {

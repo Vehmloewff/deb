@@ -1,5 +1,5 @@
 import { makeElement } from './element.ts'
-import { getTheme } from './theme.ts'
+import { getTheme } from './theme-acceptor.ts'
 
 // deno-lint-ignore no-undef
 export function appRoot(rootHTMLElement = document.body) {

@@ -2,6 +2,7 @@
 // deno-lint-ignore-file no-explicit-any no-undef
 
 import { MaybeStorable, sureGet, groupSubscribe, Storable } from './storable.ts'
+import { themeChanges } from './theme-acceptor.ts'
 
 export type ElementStyles = {
 	[P in keyof CSSStyleDeclaration]?: MaybeStorable<CSSStyleDeclaration[P]>
@@ -111,7 +112,7 @@ export function makeElement<K extends keyof HTMLElementTagNameMap>(type: K | HTM
 		click: () => {
 			clickInside = true
 			sm.activateStyleScope('after')
-			sm.activateStyleScope('focused')
+			sm.activateStyleScope('focus')
 		},
 		mousedown: () => sm.activateStyleScope('active'),
 		mouseup: () => sm.deactivateStyleScope('active'),
@@ -140,8 +141,10 @@ function stylesManager(params: StylesManagerParams) {
 	const activeScopes: StyleScopes[] = []
 
 	const scopeIsActive = (scope: string) => activeScopes.indexOf(scope) !== -1
+	const lastUnSubscribers: (() => void)[] = []
 
 	function editStyle() {
+		lastUnSubscribers.forEach(fn => fn())
 		const activeStyles: Partial<CSSStyleDeclaration> = {}
 
 		activeScopes.forEach(scope => {
@@ -151,9 +154,11 @@ function stylesManager(params: StylesManagerParams) {
 			for (const style in styles) {
 				const value = styles[style]
 
-				groupSubscribe(changed => {
-					if (changed === 0) editStyle()
-				}, value)
+				lastUnSubscribers.push(
+					groupSubscribe(changed => {
+						if (changed === 0) editStyle()
+					}, value)
+				)
 
 				activeStyles[style] = sureGet(value)
 			}
@@ -181,7 +186,7 @@ function stylesManager(params: StylesManagerParams) {
 			activeScopes.push(scope)
 		}
 
-		editStyle()
+		if (styleScopes.has(scope)) editStyle()
 	}
 
 	function deactivateStyleScope(scope: string) {
@@ -189,8 +194,11 @@ function stylesManager(params: StylesManagerParams) {
 		if (index === -1) return
 
 		activeScopes.splice(index, 1)
-		editStyle()
+
+		if (styleScopes.has(scope)) editStyle()
 	}
+
+	themeChanges().subscribe(() => editStyle())
 
 	return { style, styleScope, activateStyleScope, deactivateStyleScope }
 }

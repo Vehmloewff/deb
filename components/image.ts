@@ -1,4 +1,4 @@
-import { makeElement, MaybeStorable, groupSubscribe, sureGet } from '../mod.ts'
+import { makeElement, MaybeStorable, groupSubscribe, sureGet, getTheme } from '../mod.ts'
 
 export interface MakeImageOptions {
 	alt?: MaybeStorable<string>
@@ -16,5 +16,5 @@ export function makeImage(src: MaybeStorable<string>, options: MakeImageOptions 
 		options.alt
 	)
 
-	return img
+	return img.style({ borderRadius: getTheme().mediumAverageBorder })
 }

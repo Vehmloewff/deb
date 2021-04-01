@@ -15,7 +15,7 @@ export function makeLink(href: MaybeStorable<string>, options: MakeLinkOptions =
 	if (options.newTab) $.raw.setAttribute('target', '_blank')
 
 	return $.style({
-		color: getTheme().action1,
+		color: getTheme().linksColor,
 		cursor: 'pointer',
 		textDecoration: 'none',
 	})
