@@ -54,7 +54,7 @@ appRoot().$(
 			),
 			page,
 			makeSpacer(30),
-			makeTextField(inputValue, { label: 'Text Field', error, help }),
+			makeTextField(inputValue, { label: 'Text Field', error, help, multiline: true }),
 			makeSpacer(30),
 			makeText(inputValue),
 			makeSpacer(10),

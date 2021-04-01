@@ -21,13 +21,14 @@ export interface TextFieldOptions {
 	// inputAppend?: MaybeStorable<BareElement>
 	// inputPrepend?: MaybeStorable<BareElement>
 	disableTwoWayBinding?: boolean
+	multiline?: boolean
 }
 
 export function makeTextField(text: MaybeStorable<string>, options: TextFieldOptions = {}) {
 	const error = options.error || storable(false)
 
-	const container = makeDivision()
-	const label = makeElement('label').$(
+	const container = makeElement('label')
+	const label = makeDivision().$(
 		makeText(options.label ? options.label : '').style({
 			fontSize: getTheme().smallTextSize,
 			fontWeight: 'bold',
@@ -35,12 +36,14 @@ export function makeTextField(text: MaybeStorable<string>, options: TextFieldOpt
 			color: derive(error, e => (e ? getTheme().danger : getTheme().textFieldHelpColor)),
 		})
 	)
-	const input = makeElement('input').style({
+	const input = makeElement(options.multiline ? 'textarea' : 'input').style({
 		width: '100%',
 		padding: 'none',
 		margin: 'none',
 		border: 'none',
 		outline: 'none',
+		resize: 'none',
+		height: options.multiline ? '44px' : 'unset',
 		background: 'rgba(0, 0, 0, 0)',
 		caretColor: derive(error, e => (e ? getTheme().danger : getTheme().action1)),
 	})
@@ -70,6 +73,11 @@ export function makeTextField(text: MaybeStorable<string>, options: TextFieldOpt
 				;(text as Storable<string>).set(input.raw.value)
 			}
 			container.emit('input', e)
+
+			const floor = (num: number, floor: number) => (num < floor ? floor : num)
+
+			input.raw.style.height = `0px`
+			input.raw.style.height = `${floor(input.raw.scrollHeight, 44)}px`
 		},
 	})
 
