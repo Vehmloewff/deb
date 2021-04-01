@@ -61,8 +61,8 @@ If you are creating a component library, be sure to export `acceptTheme`. This w
 -   [ ] Icon component
 -   [ ] IconButton component
 -   [ ] TextField component
-    -   [ ] Errors support
-    -   [ ] Disabled support
+    -   [x] Errors support
+    -   [x] Disabled support
     -   [x] Multiline
     -   [ ] Head and tail inserts
 -   [ ] Router
