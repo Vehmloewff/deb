@@ -67,17 +67,18 @@ export function makeTextField(text: MaybeStorable<string>, options: TextFieldOpt
 	}, text)
 
 	input.on({
-		input(e) {
+		input() {
 			if (isStorable(text) && !options.disableTwoWayBinding) {
 				editCausedByInput = true
 				;(text as Storable<string>).set(input.raw.value)
 			}
-			container.emit('input', e)
 
 			const floor = (num: number, floor: number) => (num < floor ? floor : num)
 
-			input.raw.style.height = `0px`
-			input.raw.style.height = `${floor(input.raw.scrollHeight, 44)}px`
+			if (options.multiline) {
+				input.raw.style.height = `0px`
+				input.raw.style.height = `${floor(input.raw.scrollHeight, 44)}px`
+			}
 		},
 	})
 
