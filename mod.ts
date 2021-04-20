@@ -4,7 +4,6 @@ import { acceptTheme } from './lib/theme-acceptor.ts'
 
 export const defaultTheme = makeTheme(new DefaultThemeValues())
 acceptTheme(defaultTheme)
-console.log('hi there')
 
 export * from './lib/app-root.ts'
 export * from './lib/element.ts'

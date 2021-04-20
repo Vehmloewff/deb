@@ -18,13 +18,13 @@ import { parseMarkdown, Node } from './lib/parse-markdown.ts'
 const INDENT_SIZE = 10
 
 export function renderMarkdown(markdown: MaybeStorable<string>) {
-	const element = makeDivision().$('Rendering coming soon!')
+	const element = makeDivision()
 
 	groupSubscribe(() => {
 		// remove the old rendering
 		element.raw.innerHTML = ``
 
-		element.$(...render(sureGet(markdown)))
+		element.children(render(sureGet(markdown)))
 	}, markdown)
 
 	return element

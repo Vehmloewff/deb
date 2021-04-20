@@ -53,10 +53,10 @@ If you are creating a component library, be sure to export `acceptTheme`. This w
 
 ## TODO
 
--   [ ] Allow children of elements to be storables and arrays of children and other storables
--   [ ] If component
--   [ ] Each component
--   [ ] Await component
+-   [x] Children as storables
+-   [x] Conditional children support
+-   [ ] Reactive each support
+-   [ ] Reactive await support
 -   [x] Button component
 -   [ ] Icon component
 -   [ ] IconButton component

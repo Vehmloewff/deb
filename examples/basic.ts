@@ -41,6 +41,7 @@ console.log('hi')
 const inputValue = storable('Edit me!')
 const error = derive(inputValue, v => !/me/i.test(v))
 const help = derive(error, e => (e ? 'Must contain the word "me".' : 'Whatever you want to say...'))
+const showText = storable(true)
 
 appRoot().$(
 	makeDivision()
@@ -52,7 +53,7 @@ appRoot().$(
 				makeLink('https://github.com/Vehmloewff', { newTab: true }).$('Github profile'),
 				`?`
 			),
-			page,
+			makeDivision().conditional(showText, [page]),
 			makeSpacer(30),
 			makeTextField(inputValue, { label: 'Text Field', error, help, multiline: false }),
 			makeSpacer(30),
@@ -66,7 +67,7 @@ appRoot().$(
 				click: () => inputValue.set('It has been reset! (me)'),
 			}),
 			makeSpacer(10),
-			makeButton('Go somewhere', { block: true, href: 'https://github.com/Vehmloewff' }),
+			makeButton('Toggle Markdown', { block: true }).on({ click: () => showText.set(!showText.get()) }),
 			makeSpacer(50)
 		)
 )

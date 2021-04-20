@@ -27,7 +27,7 @@ export async function buildExamples() {
 	</html>`,
 		{ create: true }
 	)
-	await sh(`bundler bundle examples/basic.ts=out/bundle.js --watch`)
+	await sh(`deno bundle examples/basic.ts dist/out/bundle.js --no-check --unstable --watch`)
 }
 
 // export async function supportTopLevelAwaitInBundle() {

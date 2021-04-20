@@ -1,7 +1,7 @@
 /// <reference lib="dom" />
 // deno-lint-ignore-file no-explicit-any no-undef
 
-import { MaybeStorable, sureGet, groupSubscribe, Storable } from './storable.ts'
+import { MaybeStorable, sureGet, groupSubscribe, Storable, isStorable } from './storable.ts'
 import { themeChanges } from './theme-acceptor.ts'
 
 export type ElementStyles = {
@@ -22,13 +22,16 @@ export type EventListeners = {
 }
 
 export type StyleScopes = 'hover' | 'active' | 'focused' | string
+export type Child = MaybeStorable<BareElement | string>
 
 export interface Element<T extends HTMLElement = HTMLElement> {
 	style(styles: ElementStyles): Element<T>
 	styleScope(name: StyleScopes, styles: ElementStyles): Element<T>
 	activateStyleScope(scope: StyleScopes): void
 	deactivateStyleScope(scope: StyleScopes): void
-	$(...children: (BareElement | string)[]): Element<T>
+	conditional(condition: MaybeStorable<any>, children: Child[]): Element<T>
+	$(...children: Child[]): Element<T>
+	children(children: Child[]): Element<T>
 	on(eventListeners: EventListeners): Element<T>
 	emit<K extends keyof EventMap>(event: K, data: EventMap[K]): void
 	listen<K extends keyof EventListeners>(event: K, listener: EventListeners[K]): () => void
@@ -70,6 +73,8 @@ export function makeElement<K extends keyof HTMLElementTagNameMap>(type: K | HTM
 		activateStyleScope: sm.activateStyleScope,
 		deactivateStyleScope: sm.deactivateStyleScope,
 		$,
+		conditional,
+		children,
 		on,
 		emit: em.emit,
 		listen: em.listen,
@@ -86,17 +91,78 @@ export function makeElement<K extends keyof HTMLElementTagNameMap>(type: K | HTM
 		return result
 	}
 
-	function $(...children: (BareElement | string)[]) {
-		children.forEach(child => {
-			if (typeof child === 'string') raw.append(child)
-			else {
-				raw.appendChild(child.raw)
-				// @ts-expect-error the emit property just might be on the child
-				if (child.emit) child.emit('mount', raw)
-			}
+	let childrenAndConditions: { condition: MaybeStorable<any>; children: Child[] }[] = []
+	let destroyPreviousChildren: (() => void) | null = null
+
+	function $(...children: Child[]) {
+		childrenAndConditions.push({
+			condition: true,
+			children,
 		})
 
+		renderChildren()
+
 		return result
+	}
+
+	function conditional(condition: MaybeStorable<any>, children: Child[]) {
+		childrenAndConditions.push({
+			condition,
+			children,
+		})
+
+		groupSubscribe(() => renderChildren(), condition)
+
+		return result
+	}
+
+	function children(children: Child[]) {
+		childrenAndConditions = [{ condition: true, children }]
+		renderChildren()
+
+		return result
+	}
+
+	function renderChildren() {
+		if (destroyPreviousChildren) destroyPreviousChildren()
+
+		for (const { condition, children } of childrenAndConditions) {
+			if (sureGet(condition)) {
+				const unsubscribers: (() => void)[] = []
+
+				destroyPreviousChildren = () => {
+					children.forEach(child => {
+						// @ts-expect-error the emit property just might be on the child
+						if (typeof child !== 'string' && child.emit) child.emit('destroy', raw)
+					})
+
+					raw.childNodes.forEach(child => child.remove())
+				}
+
+				children.forEach((child, index) => {
+					if (isStorable(child)) {
+						let oldEl: null | BareElement = null
+
+						unsubscribers.push(
+							child.subscribe(child => {
+								if (oldEl) {
+									// @ts-expect-error the emit property just might be on the child
+									if (oldEl.emit) oldEl.emit('destroy', raw)
+
+									oldEl.raw.remove()
+								}
+
+								insertElement(result, index, child)
+
+								if (typeof child !== 'string') oldEl = child
+							})
+						)
+					} else insertElement(result, null, child)
+				})
+
+				break
+			}
+		}
 	}
 
 	function on(eventListeners: EventListeners) {
@@ -251,4 +317,12 @@ function eventsManager(params: EventsManagerParams) {
 		emit,
 		listen,
 	}
+}
+
+function insertElement(parent: BareElement, index: number | null, child: BareElement | string) {
+	const childElement = typeof child === 'string' ? document.createTextNode(child) : child.raw
+
+	const beforeElement = index === null ? null : parent.raw.children.item(index + 1) || null
+
+	parent.raw.insertBefore(childElement, beforeElement)
 }

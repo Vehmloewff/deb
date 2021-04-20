@@ -48,7 +48,7 @@ export function storable<T>(value: T): Storable<T> {
 	}
 }
 
-export function isStorable<T>(value: MaybeStorable<T>): typeof value extends Storable<T> ? true : false
+export function isStorable<T>(value: MaybeStorable<T>): value is Storable<T>
 export function isStorable(value: MaybeStorable<any>): boolean {
 	if (!value) return false
 	if ((value as any).subscribe) return true
