@@ -55,7 +55,7 @@ If you are creating a component library, be sure to export `acceptTheme`. This w
 
 -   [x] Children as storables
 -   [x] Conditional children support
--   [ ] Reactive each support
+-   [x] Reactive each support
 -   [ ] Reactive await support
 -   [x] Button component
 -   [ ] Icon component

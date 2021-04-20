@@ -32,6 +32,7 @@ export interface Element<T extends HTMLElement = HTMLElement> {
 	conditional(condition: MaybeStorable<any>, children: Child[]): Element<T>
 	$(...children: Child[]): Element<T>
 	children(children: Child[]): Element<T>
+	forEach<IT>(items: MaybeStorable<IT[]>, fn: (item: IT) => BareElement | string): Element<T>
 	on(eventListeners: EventListeners): Element<T>
 	emit<K extends keyof EventMap>(event: K, data: EventMap[K]): void
 	listen<K extends keyof EventListeners>(event: K, listener: EventListeners[K]): () => void
@@ -75,13 +76,14 @@ export function makeElement<K extends keyof HTMLElementTagNameMap>(type: K | HTM
 		$,
 		conditional,
 		children,
+		forEach,
 		on,
 		emit: em.emit,
 		listen: em.listen,
 		raw,
 	}
 
-	// I'm re-stating these functions so that they can return `result` for chaining purposes
+	// I'm re-stating these functions so that they can return `child` for chaining purposes
 	function style(styles: ElementStyles) {
 		sm.style(styles)
 		return result
@@ -119,6 +121,49 @@ export function makeElement<K extends keyof HTMLElementTagNameMap>(type: K | HTM
 	function children(children: Child[]) {
 		childrenAndConditions = [{ condition: true, children }]
 		renderChildren()
+
+		return result
+	}
+
+	function forEach<IT>(items: MaybeStorable<IT[]>, fn: (item: IT) => Child) {
+		let oldMap: null | { item: IT; child: Child }[] = null
+		let indexInConditions: null | number = null
+
+		groupSubscribe(() => {
+			const newItems = sureGet(items)
+			const newChildrenCast: (Child | null)[] = []
+
+			newItems.forEach(() => newChildrenCast.push(null))
+
+			if (oldMap)
+				oldMap.forEach(({ item, child }) => {
+					const newItemIndex = newItems.indexOf(item)
+					if (newItemIndex === -1) return
+
+					newChildrenCast.splice(newItemIndex, 1, child)
+				})
+
+			const newChildren = newChildrenCast.map((newChild, index) => {
+				if (newChild) return newChild
+
+				return fn(newItems[index])
+			})
+
+			if (indexInConditions === null) {
+				indexInConditions = childrenAndConditions.length
+
+				childrenAndConditions.push({
+					condition: newChildren.length !== 0,
+					children: newChildren,
+				})
+			} else {
+				childrenAndConditions[indexInConditions] = { condition: newChildren.length !== 0, children: newChildren }
+			}
+
+			renderChildren()
+
+			oldMap = newItems.map((item, index) => ({ item, child: newChildren[index] }))
+		}, items)
 
 		return result
 	}

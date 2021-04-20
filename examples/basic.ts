@@ -1,3 +1,4 @@
+import { chooseRandArrItem } from 'https://denopkg.com/Vehmloewff/deno-utils/mod.ts'
 import {
 	appRoot,
 	makeLink,
@@ -42,6 +43,7 @@ const inputValue = storable('Edit me!')
 const error = derive(inputValue, v => !/me/i.test(v))
 const help = derive(error, e => (e ? 'Must contain the word "me".' : 'Whatever you want to say...'))
 const showText = storable(true)
+const forEachItems = storable<{ name: string }[]>([])
 
 appRoot().$(
 	makeDivision()
@@ -68,6 +70,36 @@ appRoot().$(
 			}),
 			makeSpacer(10),
 			makeButton('Toggle Markdown', { block: true }).on({ click: () => showText.set(!showText.get()) }),
+			makeSpacer(20),
+			makeParagraph().$('Some interesting names:'),
+			makeDivision()
+				.forEach(forEachItems, ({ name }) => makeDivision().$(name))
+				.$(renderMarkdown('_(coming soon - real soon)_')),
 			makeSpacer(50)
 		)
 )
+
+let names: string[] = []
+
+async function getRandomName() {
+	if (!names.length)
+		names = await fetch('https://api.allorigins.win/raw?url=https://www.randomlists.com/data/names-first.json')
+			.then(res => res.json())
+			.then(res => res.data)
+
+	return chooseRandArrItem(names)
+}
+
+setInterval(async () => {
+	const items = forEachItems.get()
+
+	const newItem = async () => ({ name: await getRandomName() })
+
+	forEachItems.set([
+		items[1] || (await newItem()),
+		items[2] || (await newItem()),
+		items[3] || (await newItem()),
+		items[4] || (await newItem()),
+		await newItem(),
+	])
+}, 5000)
