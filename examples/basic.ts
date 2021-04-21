@@ -45,6 +45,9 @@ const help = derive(error, e => (e ? 'Must contain the word "me".' : 'Whatever y
 const showText = storable(true)
 const forEachItems = storable<{ name: string }[]>([])
 
+// Just to be sure top-level promises are supported by the bundler
+await new Promise(resolve => resolve(1))
+
 appRoot().$(
 	makeDivision()
 		.style({ paddingTop: '40px', maxWidth: '600px', margin: 'auto' })
