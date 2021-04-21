@@ -7,6 +7,7 @@ export interface BundleOptions {
 	input: string
 	output: string
 	watch?: boolean
+	importMap?: string
 }
 
 export async function bundle(options: BundleOptions) {
@@ -27,7 +28,9 @@ export async function bundle(options: BundleOptions) {
 	}
 
 	await sh(
-		`deno bundle ${options.input} ${options.output} --config ${configPath} --no-check --unstable ${options.watch ? '--watch' : ''}`
+		`deno bundle ${options.input} ${options.output} --config ${configPath} --no-check --unstable ${options.watch ? '--watch' : ''} ${
+			options.importMap ? `--import-map="${options.importMap}"` : ''
+		}`
 	)
 
 	if (!options.watch) await supportTopLevelAwaitInBundle(options.output)
