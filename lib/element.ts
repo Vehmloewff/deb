@@ -17,8 +17,8 @@ export type CustomEventMap = {
 }
 export type EventMap = BuiltinEventMap & CustomEventMap
 
-export type EventListeners = {
-	[P in keyof EventMap]?: MaybeStorable<(e: EventMap[P]) => Promise<void> | void>
+export type EventListeners<T extends HTMLElement> = {
+	[P in keyof EventMap]?: MaybeStorable<(e: EventMap[P], el: Element<T>) => Promise<void> | void>
 }
 
 export type StyleScopes = 'hover' | 'active' | 'focused' | string
@@ -32,10 +32,10 @@ export interface Element<T extends HTMLElement = HTMLElement> {
 	conditional(condition: MaybeStorable<any>, children: Child[]): Element<T>
 	$(...children: Child[]): Element<T>
 	children(children: Child[]): Element<T>
-	forEach<IT>(items: MaybeStorable<IT[]>, fn: (item: IT) => BareElement | string): Element<T>
-	on(eventListeners: EventListeners): Element<T>
+	forEach<IT>(items: MaybeStorable<IT[]>, fn: (item: IT, index: number) => BareElement | string): Element<T>
+	on(eventListeners: EventListeners<T>): Element<T>
 	emit<K extends keyof EventMap>(event: K, data: EventMap[K]): void
-	listen<K extends keyof EventListeners>(event: K, listener: EventListeners[K]): () => void
+	listen<K extends keyof EventListeners<T>>(event: K, listener: EventListeners<T>[K]): () => void
 	raw: T
 }
 
@@ -125,7 +125,7 @@ export function makeElement<K extends keyof HTMLElementTagNameMap>(type: K | HTM
 		return result
 	}
 
-	function forEach<IT>(items: MaybeStorable<IT[]>, fn: (item: IT) => Child) {
+	function forEach<IT>(items: MaybeStorable<IT[]>, fn: (item: IT, index: number) => Child) {
 		let oldMap: null | { item: IT; child: Child }[] = null
 		let indexInConditions: null | number = null
 
@@ -146,7 +146,7 @@ export function makeElement<K extends keyof HTMLElementTagNameMap>(type: K | HTM
 			const newChildren = newChildrenCast.map((newChild, index) => {
 				if (newChild) return newChild
 
-				return fn(newItems[index])
+				return fn(newItems[index], index)
 			})
 
 			if (indexInConditions === null) {
@@ -181,7 +181,7 @@ export function makeElement<K extends keyof HTMLElementTagNameMap>(type: K | HTM
 						if (typeof child !== 'string' && child.emit) child.emit('destroy', raw)
 					})
 
-					raw.childNodes.forEach(child => child.remove())
+					raw.innerHTML = ``
 				}
 
 				children.forEach((child, index) => {
@@ -210,7 +210,7 @@ export function makeElement<K extends keyof HTMLElementTagNameMap>(type: K | HTM
 		}
 	}
 
-	function on(eventListeners: EventListeners) {
+	function on(eventListeners: EventListeners<any>) {
 		em.on(eventListeners)
 		return result
 	}
@@ -320,12 +320,12 @@ interface EventsManagerParams {
 	removeEventListener(name: string, fn: (eventData: any) => void): void
 }
 
-function eventsManager(params: EventsManagerParams) {
+function eventsManager(params: EventsManagerParams, element: Element<any>) {
 	const listeners: Record<string, ((e: any) => void)[]> = {}
 
-	function on(eventListeners: EventListeners) {
+	function on(eventListeners: EventListeners<any>) {
 		for (const event in eventListeners) {
-			const listener = eventListeners[event as keyof EventListeners]
+			const listener = eventListeners[event as keyof EventListeners<any>]
 			if (!listener) continue
 			listen(event, listener)
 		}
@@ -336,13 +336,13 @@ function eventsManager(params: EventsManagerParams) {
 		listeners[event as string].forEach(fn => fn(data))
 	}
 
-	function listen<K extends keyof EventListeners>(event: K, listener: EventListeners[K]) {
+	function listen<K extends keyof EventListeners<any>>(event: K, listener: EventListeners<any>[K]) {
 		if (!listeners[event as string]) listeners[event as string] = []
 
 		const fn = (e: any) => {
 			if (!listener) return
 
-			sureGet(listener as Storable<any>)(e)
+			sureGet(listener as Storable<any>)(e, element)
 		}
 
 		listeners[event as string].push(fn)

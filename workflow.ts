@@ -1,4 +1,4 @@
-import { sh, readText, writeText, writeJson } from 'https://denopkg.com/Vehmloewff/deno-utils/mod.ts'
+import { sh, readText, writeText, writeJson, exists } from 'https://denopkg.com/Vehmloewff/deno-utils/mod.ts'
 import { Application, send } from 'https://deno.land/x/oak@v6.5.1/mod.ts'
 import { join } from 'https://deno.land/std@0.92.0/path/mod.ts'
 import { acceptWebSocket, WebSocket } from 'https://deno.land/std@0.92.0/ws/mod.ts'
@@ -13,6 +13,8 @@ export interface BundleOptions {
 export async function bundle(options: BundleOptions) {
 	const configPath = await Deno.makeTempFile()
 	await writeJson(configPath, { compilerOptions: { lib: ['dom', 'esnext', 'deno.ns'] } })
+
+	if (!(await exists(options.output))) await writeText(options.output, '')
 
 	if (options.watch) {
 		let rewriteCaused = false
@@ -160,7 +162,7 @@ export async function staticServer(options: StaticServerOptions) {
 	})
 
 	app.addEventListener('listen', () => {
-		console.log(`Listening on https://localhost:${options.port}`)
+		console.log(`Listening on http://localhost:${options.port}`)
 	})
 
 	if (options.livereload) {
